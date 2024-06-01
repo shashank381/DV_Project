@@ -1,1 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wildfire Prediction</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 90%;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .map-container {
+            width: 100%;
+            height: 600px;
+        }
+        .form-container {
+            margin-top: 20px;
+        }
+        form {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        label, input, select {
+            margin: 10px;
+        }
+        input[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 10px 20px;
+        }
+        input[type="submit"]:hover {
+            background-color: #45a049;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+    </style>
+    <!-- Include Mapbox and D3.js -->
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.css' rel='stylesheet' />
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.js'></script>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Wildfire Prediction</h1>
+        <div id="map" class="map-container"></div>
+        <div class="form-container">
+            <form id="predictionForm">
+                <label for="county">County:</label>
+                <select id="county" name="county" required>
+                    <option value="0">Alameda County</option>
+                    <option value="1">Alpine County</option>
+                    <option value="2">Amador County</option>
+                    <option value="3">Butte County</option>
+                    <option value="4">Calaveras County</option>
+                    <option value="5">Colusa County</option>
+                    <option value="6">Contra Costa County</option>
+                    <option value="7">Del Norte County</option>
+                    <option value="8">El Dorado County</option>
+                    <option value="9">Fresno County</option>
+                    <option value="10">Glenn County</option>
+                    <option value="11">Humboldt County</option>
+                    <option value="12">Imperial County</option>
+                    <option value="13">Inyo County</option>
+                    <option value="14">Kern County</option>
+                    <option value="15">Kings County</option>
+                    <option value="16">Lake County</option>
+                    <option value="17">Lassen County</option>
+                    <option value="18">Los Angeles County</option>
+                    <option value="19">Madera County</option>
+                    <option value="20">Marin County</option>
+                    <option value="21">Mariposa County</option>
+                    <option value="22">Mendocino County</option>
+                    <option value="23">Merced County</option>
+                    <option value="24">Modoc County</option>
+                    <option value="25">Mono County</option>
+                    <option value="26">Monterey County</option>
+                    <option value="27">Napa County</option>
+                    <option value="28">Nevada County</option>
+                    <option value="29">Orange County</option>
+                    <option value="30">Placer County</option>
+                    <option value="31">Plumas County</option>
+                    <option value="32">Riverside County</option>
+                    <option value="33">Sacramento County</option>
+                    <option value="34">San Benito County</option>
+                    <option value="35">San Bernardino County</option>
+                    <option value="36">San Diego County</option>
+                    <option value="37">San Francisco County</option>
+                    <option value="38">San Joaquin County</option>
+                    <option value="39">San Luis Obispo County</option>
+                    <option value="40">San Mateo County</option>
+                    <option value="41">Santa Barbara County</option>
+                    <option value="42">Santa Clara County</option>
+                    <option value="43">Santa Cruz County</option>
+                    <option value="44">Shasta County</option>
+                    <option value="45">Sierra County</option>
+                    <option value="46">Siskiyou County</option>
+                    <option value="47">Solano County</option>
+                    <option value="48">Sonoma County</option>
+                    <option value="49">Stanislaus County</option>
+                    <option value="50">Sutter County</option>
+                    <option value="51">Tehama County</option>
+                    <option value="52">Trinity County</option>
+                    <option value="53">Tulare County</option>
+                    <option value="54">Tuolumne County</option>
+                    <option value="55">Ventura County</option>
+                    <option value="56">Yolo County</option>
+                    <option value="57">Yuba County</option>
+                    <!-- Add other counties here -->
+                </select>
+                <label for="temp">Average Temperature (F):</label>
+                <input type="number" step="any" id="temp" name="temp" required>
+                <label for="humid">Average Humidity (%):</label>
+                <input type="number" step="any" id="humid" name="humid" required>
+                <label for="precip">Total Precipitation (in):</label>
+                <input type="number" step="any" id="precip" name="precip" required>
+                <input type="submit" value="Predict">
+            </form>
+        </div>
+        <div id="result"></div>
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Initialize Mapbox map
+            mapboxgl.accessToken = 'pk.eyJ1Ijoic2hhc2hhbmtzYXRob2xhIiwiYSI6ImNsd3VseXk1azBnaGsya3B2ZnNubG1pNXcifQ.um90v8u6fq_7JMfLc7SSVg'; // Replace with your Mapbox token
+            const map = new mapboxgl.Map({
+                container: 'map',
+                style: 'mapbox://styles/mapbox/streets-v11',
+                center: [-119.4179, 36.7783], // Center the map on California
+                zoom: 5
+            });
+
+            map.on('load', function() {
+                // Load GeoJSON data
+                d3.json("https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/california-counties.geojson")
+                    .then(function(data) {
+                        // Add GeoJSON data to the map
+                        map.addSource('counties', {
+                            'type': 'geojson',
+                            'data': data
+                        });
+                // Add a layer for the county borders
+                        map.addLayer({
+                            'id': 'counties-borders',
+                            'type': 'line',
+                            'source': 'counties',
+                            'paint': {
+                                'line-color': '#000',
+                                'line-width': 1
+                            }
+                        });
+        
+
+                        // Function to update the map with prediction data
+                        function updateMap(data1) {
+                            let countyName = data1.county.split(" ");
+                            countyName.pop()
+                            countyName.join(" ")
+                            console.log(countyName[0])
+
+                            const acresBurned = data1.acres_burned;
+
+                            const feature = data.features.find(f => f.properties.name === countyName[0]);
+console.log(feature)
+if (feature) {
+    // Create a new feature collection with the highlighted feature
+    const highlightedFeature = {
+        'type': 'FeatureCollection',
+        'features': [feature]
+    };
+
+    // Add the highlighted feature as a source
+    if (map.getSource('highlighted-county')) {
+        map.getSource('highlighted-county').setData(highlightedFeature);
+    } else {
+        map.addSource('highlighted-county', {
+            'type': 'geojson',
+            'data': highlightedFeature
+        });
+
+        map.addLayer({
+            'id': 'highlighted-county-layer',
+            'type': 'fill',
+            'source': 'highlighted-county',
+            'paint': {
+                'fill-color': acresBurned > 2500 ? '#8B0000' :
+                              acresBurned > 2250 ? '#B22222' :
+                              acresBurned > 2000
+
+                              ? '#DC143C' :
+                              acresBurned > 1750 ? '#FF4500' :
+                              acresBurned > 1500 ? '#FF6347' :
+                              acresBurned > 1250 ? '#FF7F50' :
+                              acresBurned > 1000 ? '#FF8C00' :
+                              acresBurned > 750 ? '#FFA07A' :
+                              acresBurned > 500 ? '#FFA500' :
+                              acresBurned > 250 ? '#FFD700' :
+                              acresBurned > 0 ? '#FFFACD' :
+                              '#ccc',
+                'fill-opacity': 0.5
+            }
+        });
+    }}
+
+
+                            // Add a popup with the prediction result
+                            new mapboxgl.Popup()
+                                .setLngLat([data1.lon, data1.lat])
+                                .setHTML(`<h4>${data1.county}</h4><p>${acresBurned} acres burned</p>`)
+                                .addTo(map);
+                        }
+
+                        // Handle form submission
+                        document.getElementById('predictionForm').addEventListener('submit', function(event) {
+                            event.preventDefault();
+                            const formData = new FormData(event.target);
+                            fetch('/predict', {
+                                method: 'POST',
+                                body: formData
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                updateMap(data);
+                                document.getElementById('result').innerHTML = data.acres_burned + " acres burned";
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                            });
+                        });
+                    })
+                    .catch(function(error) {
+                        console.error('Error loading the GeoJSON data:', error);
+                    });
+            });
+        });
+    </script>
+</body>
+</html>
 
