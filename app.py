@@ -22,6 +22,23 @@ county_data_dict = county_data.set_index('county').T.to_dict()
 def home():
     return render_template('index.html')
 
+@app.route('/viz1')
+def viz1():
+    return render_template('viz1.html')
+
+@app.route('/viz2')
+def viz2():
+    return render_template('viz2.html')
+
+@app.route('/viz3')
+def viz3():
+    return render_template('viz3.html')
+
+@app.route('/heatmap_data')
+def get_heatmap_data():
+    # Serve the heatmap_data.json file
+    return app.send_static_file('heatmap_data.json')
+
 @app.route('/predict', methods=['POST'])
 def predict():
     # Get form data
