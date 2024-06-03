@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualization 2 - Correlation Plot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+        .navbar {
+                overflow: hidden;
+                background-color: #333;
+                position: fixed;
+                top: 0;
+                width: 99%;
+                z-index: 1000;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0 14px;
+        }
+        .navbar .title {
+                color: white;
+                font-size: 20px;
+                font-weight: bold;
+        }
+        .navbar .nav-links {
+                display: flex;
+                gap: 0px; /* Adjust spacing between buttons */
+        }
+        .navbar a {
+            /* float: right;
+            display: block; */
+            color: #f2f2f2;
+            text-align: center;
+            padding: 14px 18px;
+            text-decoration: none;
+            font-size: 17px;
+        }
+        .navbar a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+        .navbar a.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .container {
+            width: 100%;
+            /* margin: 1px; Adjusted for navbar */
+            /* padding: 20px; */
+            text-align: center;
+        }
+        .chart-container {
+            width: 100%;
+            height: 600px;
+        }
+        #play-pause {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 10px 20px;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        #slider {
+            width: 50%;
+            margin: 20px 0;
+        }
+        .slider{
+            width: 100%;
+        }
+        .legend-container {
+            display: flex;
+            justify-content: center;
+            width: 800px;
+            /* align-self: center; */
+            margin-top: 4%; /* Adjust for navbar */
+            margin-left: 20%; /* Adjust for navbar */
+        }
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 10px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+            border: 1px solid #000;
+        }
+        .legend-label {
+            font-size: 14px;
+        }
+        .svg{
+            height: auto;
+            width: 1000px;
+            align-self: center;
+        }
+
+    </style>
+   <script src="https://d3js.org/d3.v6.min.js"></script>
+</head>
+<body>
+    <div class="navbar">
+        <div class="title">California Wildfire Prediction and Analysis</div>
+        <div class="nav-links"><a href="/">Wildfire Prediction</a>
+            <a href="/viz1" >Wildfire Heatmap</a>
+            <a href="/viz2" class="active">Top 10 counties over last decade</a>
+            <a href="/viz3">Visualization 3</a>
+        </div>
+    </div>
+    <div class="legend-container">
+        <div class="legend">
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #1f77b4;"></span>
+                <span class="legend-label">Kern County</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #ff7f0e;"></span>
+                <span class="legend-label">Los Angeles County</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #2ca02c;"></span>
+                <span class="legend-label">Mariposa County</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #d62728;"></span>
+                <span class="legend-label">San Luis Obispo County</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #9467bd;"></span>
+                <span class="legend-label">Trinity County</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #8c564b;"></span>
+                <span class="legend-label">Yuba County</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #e377c2;"></span>
+                <span class="legend-label">Napa County</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #7f7f7f;"></span>
+                <span class="legend-label">Riverside County</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #bcbd22;"></span>
+                <span class="legend-label">Siskiyou County</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #17becf;"></span>
+                <span class="legend-label">Ventura County</span>
+            </div>
+        </div>
+    </div>
+    <div class="container">
+        <div id="chart" class="chart-container"></div>
+        <button id="play-pause">Pause</button>
+        <input type="range" id="slider" class="slider" min="0" max="100" step="1">
+        <div id="current-date"></div>
+        
+    </div>
+   <script>
+        const margin = { top: 40, right: 0, bottom: 40, left: 60 };
+        const width = 1200 - margin.left - margin.right;
+        const height = 600 - margin.top - margin.bottom;
+
+        const svg = d3.select("#chart").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        const x = d3.scaleLinear()
+            .domain([25, 100])
+            .range([0, 1000]);
+
+        const y = d3.scaleLinear()
+            .domain([0, 100])
+            .range([height, 0]);
+
+        const z = d3.scaleSqrt()
+            .domain([0, 100000])
+            .range([0, 100]);
+
+        const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+        const xAxis = d3.axisBottom(x);
+        const yAxis = d3.axisLeft(y);
+
+        svg.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + height + ")")
+            .call(xAxis)
+            .append("text")
+            .attr("class", "label")
+            .attr("x", width)
+            .attr("y", -6)
+            .style("text-anchor", "end")
+            .text("Average Temperature (F)");
+
+        svg.append("g")
+            .attr("class", "y axis")
+            .call(yAxis)
+            .append("text")
+            .attr("class", "label")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 6)
+            .attr("dy", ".71em")
+            .style("text-anchor", "end")
+            .text("Average Humidity (%)");
+
+        const top10Counties = [
+            "Los Angeles County",
+            "Kern County",
+            "Mariposa County",
+            "Yuba County",
+            "Ventura County",
+            "Siskiyou County",
+            "San Luis Obispo County",
+            "Riverside County",
+            "Napa County",
+            "Trinity County"
+        ];
+
+        const convertDate = (dateString) => {
+  const [year, month, day] = dateString.split('-');
+  const date = new Date(Date.UTC(year, month, day));
+  const options = { year: 'numeric', month: 'long' };
+  return date.toLocaleDateString('en-US', options);
+};
+
+
+        d3.csv("/static/aggregated_top_10_counties_burned_data.csv").then(data => {
+            data.forEach(d => {
+                d.date = convertDate(d.year_month);
+                d.q_avgtempF = +d.q_avgtempF;
+                d.q_avghumid = +d.q_avghumid;
+                d.GIS_ACRES = +d.GIS_ACRES;
+            });
+
+
+            const nestedData = Array.from(d3.group(data, d => d.year_month), ([key, value]) => ({
+                key: key,
+                value
+            }));
+
+
+            const dates = nestedData.map(d => d.key);
+            console.log(nestedData)
+
+
+            let currentIndex = 0;
+            let playing = true;
+
+            const slider = d3.select("#slider");
+            slider.attr("min", 0)
+                .attr("max", dates.length - 1)
+                .on("input", function() {
+                    currentIndex = +this.value;
+                    update(nestedData[currentIndex].value);
+                    d3.select("#current-date").text(nestedData[currentIndex].value[0].date);
+
+                });
+
+            function update(data) {
+                // Calculate the maximum acres burned for the current month's data
+                const maxAcres = d3.max(data, d => d.GIS_ACRES);
+                // Update the domain of the size scale
+                z.domain([0, maxAcres]);
+
+                const circles = svg.selectAll(".dot")
+                    .data(data, d => d.county);
+
+                    const enterCircles = circles.enter().append("circle")
+                    .attr("class", "dot")
+                    .attr("cx", d => x(d.q_avgtempF))
+                    .attr("cy", d => y(d.q_avghumid))
+                    .style("fill", d => color(d.county))
+                    .style("opacity", d => 0.7) // Adjust opacity
+                    .on("mouseover", function (event, d) {
+                        d3.select(this).style("opacity", 1);
+                        console.log(`Hovering over: ${d.county}, Temp: ${d.q_avgtempF}, Humidity: ${d.q_avghumid}, Acres: ${d.GIS_ACRES}`);
+                    })
+                    .on("mouseout", function (event, d) {
+                        d3.select(this).style("opacity", 0.7);
+                    });
+                    
+                    enterCircles.merge(circles)
+                        .transition().duration(500)
+                        .attr("cx", d => x(d.q_avgtempF))
+                        .attr("cy", d => y(d.q_avghumid))
+                        .attr("r", d => z(d.GIS_ACRES));
+
+                    enterCircles.append("title")
+                        .merge(circles.select("title"))
+                        .text(d => `${d.county}\nAvg Temp: ${d.q_avgtempF}\nAvg Humidity: ${d.q_avghumid}\nAcres Burned: ${d.GIS_ACRES}`);
+
+                circles.exit().remove();
+                svg.selectAll(".dot").sort((a, b) => d3.descending(a.GIS_ACRES, b.GIS_ACRES));
+
+                // circles.append("title")
+                //     .text(d => `${d.county}\nAvg Temp: ${d.q_avgtempF}\nAvg Humidity: ${d.q_avghumid}\nAcres Burned: ${d.GIS_ACRES}`);
+            }
+
+            function step() {
+                update(nestedData[currentIndex].value);
+                d3.select("#current-date").text(nestedData[currentIndex].value[0].date);
+                currentIndex++;
+                if (currentIndex >= nestedData.length) {
+                    currentIndex = 0;
+                }
+                slider.property("value", currentIndex);
+            }
+
+            let interval = setInterval(step, 1000);
+
+            d3.select("#play-pause").on("click", () => {
+                if (playing) {
+                    clearInterval(interval);
+                    d3.select("#play-pause").text("Play");
+                } else {
+                    interval = setInterval(step, 1000);
+                    d3.select("#play-pause").text("Pause");
+                }
+                playing = !playing;
+            });
+            const legend = d3.select("#legend");
+            const counties = Array.from(new Set(data.map(d => d.county)));
+            counties.forEach(county => {
+                const legendItem = legend.append("div")
+                    .attr("class", "legend-item");
+                legendItem.append("div")
+                    .attr("class", "legend-color")
+                    .style("background-color", color(county));
+                legendItem.append("span")
+                    .text(county);
+            });
+            update(nestedData[currentIndex].value);
+            d3.select("#current-date").text(nestedData[currentIndex].value[0].date);
+        }).catch(error => console.error('Error loading the data:', error));
+    </script>
+</body>
+</html>

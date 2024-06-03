@@ -6,20 +6,59 @@
     <title>Wildfire Prediction</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Arial', sans-serif;
             background-color: #f4f4f9;
             margin: 0;
             padding: 0;
         }
+        .navbar {
+                overflow: hidden;
+                background-color: #333;
+                position: fixed;
+                top: 0;
+                width: 99%;
+                z-index: 1000;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0 14px;
+        }
+        .navbar .title {
+                color: white;
+                font-size: 20px;
+                font-weight: bold;
+        }
+        .navbar .nav-links {
+                display: flex;
+                gap: 0px; /* Adjust spacing between buttons */
+        }
+        .navbar a {
+            /* float: right;
+            display: block; */
+            color: #f2f2f2;
+            text-align: center;
+            padding: 14px 18px;
+            text-decoration: none;
+            font-size: 17px;
+        }
+        .navbar a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+        .navbar a.active {
+            background-color: #4CAF50;
+            color: white;
+        }
         .container {
             width: 90%;
-            margin: 0 auto;
+            margin: 100px auto 0; /* Adjusted for navbar */
             padding: 20px;
             text-align: center;
         }
         .map-container {
             width: 100%;
             height: 600px;
+            margin: 0 auto; /* Centering the map */
         }
         .form-container {
             margin-top: 20px;
@@ -29,9 +68,10 @@
             justify-content: center;
             align-items: center;
             flex-wrap: wrap;
+            gap: 10px;
         }
         label, input, select {
-            margin: 10px;
+            margin: 5px;
         }
         input[type="submit"] {
             background-color: #4CAF50;
@@ -39,6 +79,7 @@
             border: none;
             cursor: pointer;
             padding: 10px 20px;
+            font-size: 16px;
         }
         input[type="submit"]:hover {
             background-color: #45a049;
@@ -47,13 +88,28 @@
             margin-top: 20px;
             font-size: 1.2em;
         }
+        svg {
+            width: 100%;
+            height: auto;
+        }
     </style>
-    <!-- Include Mapbox and D3.js -->
+    <!-- Include Mapbox, D3.js, and jQuery -->
     <link href='https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.css' rel='stylesheet' />
     <script src='https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.js'></script>
     <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
 </head>
 <body>
+    <div class="navbar">
+        <div class="title">California Wildfire Prediction and Analysis</div>
+        <div class="nav-links"><a href="/" class="active">Wildfire Prediction</a>
+            <a href="/viz1">Wildfire Heatmap</a>
+            <a href="/viz2">Visualization 2</a>
+            <a href="/viz3">Visualization 3</a>
+        </div>
+    </div>
     <div class="container">
         <h1>Wildfire Prediction</h1>
         <div id="map" class="map-container"></div>
@@ -61,6 +117,7 @@
             <form id="predictionForm">
                 <label for="county">County:</label>
                 <select id="county" name="county" required>
+                    <option value="" disabled selected>Select County</option>
                     <option value="0">Alameda County</option>
                     <option value="1">Alpine County</option>
                     <option value="2">Amador County</option>
@@ -143,16 +200,22 @@
                 zoom: 5
             });
 
+            let geojsonData;
+            let currentPopup;
+            let temp ="aaaaa"
+
             map.on('load', function() {
                 // Load GeoJSON data
                 d3.json("https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/california-counties.geojson")
                     .then(function(data) {
+                        geojsonData = data;
+
                         // Add GeoJSON data to the map
                         map.addSource('counties', {
                             'type': 'geojson',
-                            'data': data
+                            'data': geojsonData
                         });
-                // Add a layer for the county borders
+                        // Add a layer for the county borders
                         map.addLayer({
                             'id': 'counties-borders',
                             'type': 'line',
@@ -162,91 +225,106 @@
                                 'line-width': 1
                             }
                         });
-        
-
-                        // Function to update the map with prediction data
-                        function updateMap(data1) {
-                            let countyName = data1.county.split(" ");
-                            countyName.pop()
-                            countyName.join(" ")
-                            console.log(countyName[0])
-
-                            const acresBurned = data1.acres_burned;
-
-                            const feature = data.features.find(f => f.properties.name === countyName[0]);
-console.log(feature)
-if (feature) {
-    // Create a new feature collection with the highlighted feature
-    const highlightedFeature = {
-        'type': 'FeatureCollection',
-        'features': [feature]
-    };
-
-    // Add the highlighted feature as a source
-    if (map.getSource('highlighted-county')) {
-        map.getSource('highlighted-county').setData(highlightedFeature);
-    } else {
-        map.addSource('highlighted-county', {
-            'type': 'geojson',
-            'data': highlightedFeature
-        });
-
-        map.addLayer({
-            'id': 'highlighted-county-layer',
-            'type': 'fill',
-            'source': 'highlighted-county',
-            'paint': {
-                'fill-color': acresBurned > 2500 ? '#8B0000' :
-                              acresBurned > 2250 ? '#B22222' :
-                              acresBurned > 2000
-
-                              ? '#DC143C' :
-                              acresBurned > 1750 ? '#FF4500' :
-                              acresBurned > 1500 ? '#FF6347' :
-                              acresBurned > 1250 ? '#FF7F50' :
-                              acresBurned > 1000 ? '#FF8C00' :
-                              acresBurned > 750 ? '#FFA07A' :
-                              acresBurned > 500 ? '#FFA500' :
-                              acresBurned > 250 ? '#FFD700' :
-                              acresBurned > 0 ? '#FFFACD' :
-                              '#ccc',
-                'fill-opacity': 0.5
-            }
-        });
-    }}
-
-
-                            // Add a popup with the prediction result
-                            new mapboxgl.Popup()
-                                .setLngLat([data1.lon, data1.lat])
-                                .setHTML(`<h4>${data1.county}</h4><p>${acresBurned} acres burned</p>`)
-                                .addTo(map);
-                        }
-
-                        // Handle form submission
-                        document.getElementById('predictionForm').addEventListener('submit', function(event) {
-                            event.preventDefault();
-                            const formData = new FormData(event.target);
-                            fetch('/predict', {
-                                method: 'POST',
-                                body: formData
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                updateMap(data);
-                                document.getElementById('result').innerHTML = data.acres_burned + " acres burned";
-                            })
-                            .catch(error => {
-                                console.error('Error:', error);
-                            });
-                        });
                     })
                     .catch(function(error) {
                         console.error('Error loading the GeoJSON data:', error);
                     });
             });
+
+            // Function to update the map with prediction data
+            function updateMap(predictionData) {
+                let countyName = predictionData.county.split(" ");
+                countyName.pop()
+                countyName = countyName.join(" ")
+                console.log(countyName);
+                const acresBurned = parseFloat(predictionData.acres_burned).toFixed(2);
+
+                // Remove previous popup if exists
+                if (currentPopup) {
+                    currentPopup.remove();
+                }
+
+                if (map.getLayer(temp+"-layer")) {
+                    map.removeLayer(temp+"-layer");
+                }
+                if (map.getSource(temp)) {
+                    map.removeSource(temp);
+                }
+
+                // Find the feature in the GeoJSON data
+                const feature = geojsonData.features.find(f => f.properties.name === countyName);
+
+                if (feature) {
+                    // Create a new feature collection with the highlighted feature
+                    const highlightedFeature = {
+                        'type': 'FeatureCollection',
+                        'features': [feature]
+                    };
+
+                    // Add the highlighted feature as a source
+                    if (map.getSource(countyName)) {
+                        map.getSource(countyName).setData(highlightedFeature);
+                    } else {
+                        map.addSource(countyName, {
+                            'type': 'geojson',
+                            'data': highlightedFeature
+                        });
+
+                        map.addLayer({
+                            'id': countyName+"-layer",
+                            'type': 'fill',
+                            'source': countyName,
+                            'paint': {
+                                'fill-color': acresBurned > 2500 ? '#8B0000' :
+                                              acresBurned > 2250 ? '#B22222' :
+                                              acresBurned > 2000 ? '#DC143C' :
+                                              acresBurned > 1750 ? '#FF4500' :
+                                              acresBurned > 1500 ? '#FF6347' :
+                                              acresBurned > 1250 ? '#FF7F50' :
+                                              acresBurned > 1000 ? '#FF8C00' :
+                                              acresBurned > 750 ? '#FFA07A' :
+                                              acresBurned > 500 ? '#FFA500' :
+                                              acresBurned > 0 ? '#FFD700' :
+                                              acresBurned === 0 ? "#ccc" :
+                                              '#ccc',
+                                'fill-opacity': 0.5
+                            }
+                        });
+                    }
+
+                    // Add a popup with the prediction result
+                    currentPopup = new mapboxgl.Popup()
+                        .setLngLat([predictionData.lon, predictionData.lat])
+                        .setHTML(`<h4>${predictionData.county}</h4><p>${acresBurned > 0 ? `${acresBurned} acres burned` : 'No Wildfire Predicted'}</p>`)
+                        .addTo(map);
+                }
+                temp = countyName
+            }
+
+            // Handle form submission
+            document.getElementById('predictionForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                const formData = new FormData(event.target);
+                fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    updateMap(data);
+                    document.getElementById('result').innerHTML = data.acres_burned > 0 ? `${data.acres_burned.toFixed(2)} acres burned` : 'No Wildfire Predicted';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            });
+
+            // Initialize Select2 for county dropdown
+            $('#county').select2({
+                placeholder: "Select a county",
+                allowClear: true
+            });
         });
     </script>
 </body>
 </html>
-
