@@ -51,8 +51,9 @@
         }
         .container {
             width: 90%;
-            margin: 100px auto 0; /* Adjusted for navbar */
-            padding: 20px;
+            margin: 50px auto 0;
+            margin-bottom: 0px; /*Adjusted for navbar */
+            padding-top: 0px;
             text-align: center;
         }
         .map-container {
@@ -106,7 +107,7 @@
         <div class="title">California Wildfire Prediction and Analysis</div>
         <div class="nav-links"><a href="/" class="active">Wildfire Prediction</a>
             <a href="/viz1">Wildfire Heatmap</a>
-            <a href="/viz2">Visualization 2</a>
+            <a href="/viz2">Top 10 Counties over the years</a>
             <a href="/viz3">Visualization 3</a>
         </div>
     </div>
@@ -196,7 +197,7 @@
             const map = new mapboxgl.Map({
                 container: 'map',
                 style: 'mapbox://styles/mapbox/streets-v11',
-                center: [-119.4179, 36.7783], // Center the map on California
+                center: [-119.4179, 37.1783], // Center the map on California
                 zoom: 5
             });
 

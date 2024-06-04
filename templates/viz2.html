@@ -57,7 +57,7 @@
         }
         .chart-container {
             width: 100%;
-            height: 600px;
+            height: 620px;
         }
         #play-pause {
             background-color: #4CAF50;
@@ -98,6 +98,7 @@
             height: 20px;
             margin-right: 5px;
             border: 1px solid #000;
+            /* opacity: 0.7; */
         }
         .legend-label {
             font-size: 14px;
@@ -116,7 +117,7 @@
         <div class="title">California Wildfire Prediction and Analysis</div>
         <div class="nav-links"><a href="/">Wildfire Prediction</a>
             <a href="/viz1" >Wildfire Heatmap</a>
-            <a href="/viz2" class="active">Top 10 counties over last decade</a>
+            <a href="/viz2" class="active">Top 10 Counties over the years</a>
             <a href="/viz3">Visualization 3</a>
         </div>
     </div>
@@ -174,7 +175,7 @@
    <script>
         const margin = { top: 40, right: 0, bottom: 40, left: 60 };
         const width = 1200 - margin.left - margin.right;
-        const height = 600 - margin.top - margin.bottom;
+        const height = 610 - margin.top - margin.bottom;
 
         const svg = d3.select("#chart").append("svg")
             .attr("width", width + margin.left + margin.right)
@@ -196,8 +197,13 @@
 
         const color = d3.scaleOrdinal(d3.schemeCategory10);
 
-        const xAxis = d3.axisBottom(x);
-        const yAxis = d3.axisLeft(y);
+        const xAxis = d3.axisBottom(x)
+        .tickSize(-height)
+        .tickPadding(10);
+
+        const yAxis = d3.axisLeft(y)
+        .tickSize(-width)
+        .tickPadding(10);
 
         svg.append("g")
             .attr("class", "x axis")
@@ -205,9 +211,11 @@
             .call(xAxis)
             .append("text")
             .attr("class", "label")
-            .attr("x", width)
-            .attr("y", -6)
+            .attr("x", width/1.1)
+            .attr("y", 36)
             .style("text-anchor", "end")
+            .style("fill", "black")
+            .style("font-size", "14px")
             .text("Average Temperature (F)");
 
         svg.append("g")
@@ -216,10 +224,39 @@
             .append("text")
             .attr("class", "label")
             .attr("transform", "rotate(-90)")
-            .attr("y", 6)
+            .attr("x", -height / 2)
+            .attr("y", -40)
             .attr("dy", ".71em")
             .style("text-anchor", "end")
+            .style("fill", "black")
+            .style("font-size", "14px")
             .text("Average Humidity (%)");
+
+            // Style grid lines (inside the chart)
+            d3.selectAll(".x.axis .tick line")
+                .attr("stroke", "lightgrey")
+                .attr("opacity", 0.9);
+
+            d3.selectAll(".y.axis .tick line")
+                .attr("stroke", "lightgrey")
+                .attr("opacity", 0.9);
+
+            // Ensure axis lines (the main axes) are black
+            d3.selectAll(".x.axis path, .y.axis path")
+                .attr("stroke", "black");
+
+            // Remove the end tick lines by targeting the domain line separately
+            d3.selectAll(".x.axis .domain")
+                .attr("d", `M0.5,0.5H${width}`);
+
+            d3.selectAll(".y.axis .domain")
+                .attr("d", `M0.5,0.5V${height}`);
+
+            d3.selectAll(".x.axis text")
+                .style("font-size", "12px");  // Adjust the font size as needed
+
+            d3.selectAll(".y.axis text")
+                .style("font-size", "12px");
 
         const top10Counties = [
             "Los Angeles County",
@@ -242,7 +279,7 @@
 };
 
 
-        d3.csv("/static/aggregated_top_10_counties_burned_data.csv").then(data => {
+        d3.csv("/static/cumulative_top_10_counties_burned_data.csv").then(data => {
             data.forEach(d => {
                 d.date = convertDate(d.year_month);
                 d.q_avgtempF = +d.q_avgtempF;
