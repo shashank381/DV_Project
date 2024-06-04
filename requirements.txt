@@ -4,3 +4,4 @@ scikit-learn==1.2.2
 pandas==2.2.2
 joblib
 pandas
+Flask-Cors==4.0.1
