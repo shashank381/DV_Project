@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visualization 3</title>
+    <title>Sankey Diagram</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -12,19 +14,32 @@
             padding: 0;
         }
         .navbar {
-            overflow: hidden;
-            background-color: #333;
-            position: fixed;
-            top: 0;
-            width: 100%;
-            z-index: 1000;
+                overflow: hidden;
+                background-color: #333;
+                position: fixed;
+                top: 0;
+                width: 99%;
+                z-index: 1000;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0 14px;
+        }
+        .navbar .title {
+                color: white;
+                font-size: 20px;
+                font-weight: bold;
+        }
+        .navbar .nav-links {
+                display: flex;
+                gap: 0px; /* Adjust spacing between buttons */
         }
         .navbar a {
-            float: left;
-            display: block;
+            /* float: right;
+            display: block; */
             color: #f2f2f2;
             text-align: center;
-            padding: 14px 16px;
+            padding: 14px 18px;
             text-decoration: none;
             font-size: 17px;
         }
@@ -37,22 +52,217 @@
             color: white;
         }
         .container {
-            width: 90%;
-            margin: 100px auto 0; /* Adjusted for navbar */
+            width: 100%;
+            margin: 50px auto;
             padding: 20px;
             text-align: center;
+        }
+        .chart {
+            margin: 0 auto;
         }
     </style>
 </head>
 <body>
     <div class="navbar">
-        <a href="/index">Wildfire Prediction</a>
-        <a href="/viz1">Visualization 1</a>
-        <a href="/viz2">Visualization 2</a>
-        <a href="/" class="active">Visualization 3</a>
+        <div class="title">California Wildfire Prediction and Analysis</div>
+        <div class="nav-links"><a href="/">Wildfire Prediction</a>
+            <a href="/viz1" >Wildfire Heatmap</a>
+            <a href="/viz2">Top 10 Counties over the years</a>
+            <a href="/viz3" class="active">Causes of Kern and LA Fires</a>
+        </div>
     </div>
-    <div class="container">
-        <h1>Visualization 3</h1>
-    </div>
+<div class="container">
+    <h1>Sankey Diagram</h1>
+    <div id="chart" class="container"></div>
+</div>
+<script>
+    const margin = {top: 10, right: 10, bottom: 10, left: 10},
+        width = 960 - margin.left - margin.right,
+        height = 500 - margin.top - margin.bottom;
+
+    const svg = d3.select("#chart").append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    const color = d3.scaleOrdinal()
+        .domain(["Los Angeles County", "Kern County"])
+        .range(["#ff7f0e", "#1f77b4"]);
+
+    const causeMap = {
+        1: "Lightning",
+        2: "Equipment use",
+        3: "Smoking",
+        4: "Campfire",
+        5: "Debris",
+        6: "Railroad",
+        7: "Arson",
+        8: "Playing with fire",
+        9: "Miscellaneous",
+        10: "Vehicle",
+        11: "Powerline",
+        12: "Firefighter training",
+        13: "Non-firefighter training",
+        14: "Unknown",
+        15: "Structure",
+        16: "Aircraft",
+        18: "Escaped prescribed burn",
+        19: "Illegal alien campfire"
+    };
+
+    d3.csv("/static/filtered_data.csv").then(data => {
+        data.forEach(d => {
+            d.year = +d.date.split('-')[0];
+            d.CAUSE = causeMap[+d.CAUSE];
+            d.GIS_ACRES = +d.GIS_ACRES;
+        });
+
+        const nodesMap = new Map();
+        const links = [];
+
+        data.forEach(d => {
+            if (!nodesMap.has(d.county)) {
+                nodesMap.set(d.county, {name: d.county, id: nodesMap.size});
+            }
+            if (!nodesMap.has(d.year)) {
+                nodesMap.set(d.year, {name: d.year.toString(), id: nodesMap.size});
+            }
+            if (!nodesMap.has(d.CAUSE)) {
+                nodesMap.set(d.CAUSE, {name: d.CAUSE, id: nodesMap.size});
+            }
+            links.push({
+                source: nodesMap.get(d.county).id,
+                target: nodesMap.get(d.year).id,
+                value: d.GIS_ACRES,
+                county: d.county
+            });
+            links.push({
+                source: nodesMap.get(d.year).id,
+                target: nodesMap.get(d.CAUSE).id,
+                value: d.GIS_ACRES,
+                county: d.county
+            });
+        });
+
+        const nodes = Array.from(nodesMap.values());
+        const graph = {nodes, links};
+
+        const sankey = d3.sankey()
+            .nodeWidth(36)
+            .nodePadding(10)
+            .extent([[1, 1], [width - 1, height - 5]])
+            .nodeId(d => d.id);
+
+        sankey(graph);
+
+        const link = svg.append("g").selectAll(".link")
+            .data(graph.links)
+            .enter().append("path")
+            .attr("class", "link")
+            .attr("d", d3.sankeyLinkHorizontal())
+            .style("stroke-width", d => Math.max(1, d.width))
+            .style("fill", "none")
+            .style("stroke", d => color(d.county))
+            .style("stroke-opacity", 0.5)
+            .sort((a, b) => b.width - a.width);
+
+        const node = svg.append("g").selectAll(".node")
+            .data(graph.nodes)
+            .enter().append("g")
+            .attr("class", "node")
+            .attr("transform", d => `translate(${d.x0},${d.y0})`)
+            .call(d3.drag()
+                .subject(d => d)
+                .on("start", function(event, d) {
+                    d3.select(this).raise();
+                })
+                .on("drag", function(event, d) {
+                    d.y0 = d.y0 + event.dy;
+                    d.y1 = d.y1 + event.dy;
+                    d3.select(this).attr("transform", `translate(${d.x0},${d.y0})`);
+                    sankey.update(graph);
+                    link.attr("d", d3.sankeyLinkHorizontal());
+                }));
+
+        node.append("rect")
+            .attr("height", d => d.y1 - d.y0)
+            .attr("width", sankey.nodeWidth())
+            .style("fill", d => {
+                if (d.name === "Los Angeles County" || d.name === "Kern County") {
+                    return color(d.name);
+                } else {
+                    const incomingLinks = graph.links.filter(l => l.target === d);
+                    const laCountySum = d3.sum(incomingLinks.filter(l => l.county === "Los Angeles County"), l => l.value);
+                    const kernCountySum = d3.sum(incomingLinks.filter(l => l.county === "Kern County"), l => l.value);
+                    const total = laCountySum + kernCountySum;
+                    console.log(`Node: ${d.name}, ID: ${d.id}`);
+                    console.log("Incoming Links:", incomingLinks);
+                    console.log("LA County Sum:", laCountySum);
+                    console.log("Kern County Sum:", kernCountySum);
+                    console.log("Total:", total);
+                    if (total === 0) return "#ccc";
+                    return `url(#${d.id})`;
+                }
+            })
+            .append("title")
+            .text(d => {
+                if (d.name === "Los Angeles County" || d.name === "Kern County") {
+                    return `${d.name}\n${d.value} acres burned`;
+                } else {
+                    const incomingLinks = graph.links.filter(l => l.target === d);
+                    const laCountySum = d3.sum(incomingLinks.filter(l => l.county === "Los Angeles County"), l => l.value);
+                    const kernCountySum = d3.sum(incomingLinks.filter(l => l.county === "Kern County"), l => l.value);
+                    return `${d.name}\nTotal Acres Burned: ${d.value}\nLos Angeles County: ${laCountySum} acres\nKern County: ${kernCountySum} acres`;
+                }
+            });
+
+        node.append("text")
+            .attr("x", -6)
+            .attr("y", d => (d.y1 - d.y0) / 2)
+            .attr("dy", ".35em")
+            .attr("text-anchor", "end")
+            .attr("transform", null)
+            .text(d => d.name)
+            .filter(d => d.x0 < width / 2)
+            .attr("x", 6 + sankey.nodeWidth())
+            .attr("text-anchor", "start");
+
+        const defs = svg.append("defs");
+        graph.nodes.forEach(node => {
+            if (node.name !== "Los Angeles County" && node.name !== "Kern County") {
+                const incomingLinks = graph.links.filter(l => l.target.id === node.id);
+                const laCountySum = d3.sum(incomingLinks.filter(l => l.county === "Los Angeles County"), l => l.value);
+                const kernCountySum = d3.sum(incomingLinks.filter(l => l.county === "Kern County"), l => l.value);
+                const total = laCountySum + kernCountySum;
+                console.log(`Node: ${node.name}, ID: ${node.id}`);
+                console.log("Incoming Links:", incomingLinks);
+                console.log("LA County Sum:", laCountySum);
+                console.log("Kern County Sum:", kernCountySum);
+                console.log("Total:", total);
+                if (total > 0) {
+                    const gradient = defs.append("linearGradient")
+                        .attr("id", node.id)
+                        .attr("x1", "0%")
+                        .attr("x2", "0%")
+                        .attr("y1", "0%")
+                        .attr("y2", "100%");
+                    gradient.append("stop")
+                        .attr("offset", "0%")
+                        .attr("stop-color", color("Kern County"));
+                    gradient.append("stop")
+                        .attr("offset", `${(kernCountySum / total) * 100}%`)
+                        .attr("stop-color", color("Kern County"));
+                    gradient.append("stop")
+                        .attr("offset", `${(kernCountySum / total) * 100}%`)
+                        .attr("stop-color", color("Los Angeles County"));
+                    gradient.append("stop")
+                        .attr("offset", "100%")
+                        .attr("stop-color", color("Los Angeles County"));
+                }
+            }
+        });
+    }).catch(error => console.error(error));
+</script>
 </body>
 </html>
