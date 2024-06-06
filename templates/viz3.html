@@ -226,12 +226,12 @@
             .append("title")
             .text(d => {
                 if (d.name === "Los Angeles County" || d.name === "Kern County") {
-                    return `${d.name}\n${d.value} acres burned`;
+                    return `${d.name}\n${parseFloat(d.value).toFixed(2)} acres burned`;
                 } else {
                     const incomingLinks = graph.links.filter(l => l.target === d);
                     const laCountySum = d3.sum(incomingLinks.filter(l => l.county === "Los Angeles County"), l => l.value);
                     const kernCountySum = d3.sum(incomingLinks.filter(l => l.county === "Kern County"), l => l.value);
-                    return `${d.name}\nKern County: ${kernCountySum} acres\nLos Angeles County: ${laCountySum} acres\nTotal Acres Burned: ${d.value}`;
+                    return `${d.name}\nKern County: ${parseFloat(kernCountySum).toFixed(2)} acres\nLos Angeles County: ${parseFloat(laCountySum).toFixed(2)} acres\nTotal Acres Burned: ${parseFloat(d.value).toFixed(2)}`;
                 }
             });
 
