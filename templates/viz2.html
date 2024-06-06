@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visualization 2 - Correlation Plot</title>
+    <title>Top 10 Counties</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
+            background-color: #f4f7f6;
             margin: 0;
             padding: 0;
         }
@@ -25,21 +25,21 @@
         }
         .navbar .title {
                 color: white;
-                font-size: 20px;
+                font-size: 25px;
                 font-weight: bold;
         }
         .navbar .nav-links {
                 display: flex;
-                gap: 0px; /* Adjust spacing between buttons */
+                gap: -1px; /* Adjust spacing between buttons */
         }
         .navbar a {
             /* float: right;
             display: block; */
             color: #f2f2f2;
             text-align: center;
-            padding: 14px 18px;
+            padding: 14px 14px;
             text-decoration: none;
-            font-size: 17px;
+            font-size: 15px;
         }
         .navbar a:hover {
             background-color: #ddd;
@@ -116,9 +116,9 @@
     <div class="navbar">
         <div class="title">California Wildfire Prediction and Analysis</div>
         <div class="nav-links"><a href="/">Wildfire Prediction</a>
-            <a href="/viz1" >Wildfire Heatmap</a>
-            <a href="/viz2" class="active">Top 10 Counties over the years</a>
-            <a href="/viz3">Cause of Kern and LA Fires</a>
+            <a href="/viz1" >County Choropleth</a>
+            <a href="/viz2" class="active">Top 10 Counties Over the Years</a>
+            <a href="/viz3">Sankey Diagram of Kern and LA Fires</a>
         </div>
     </div>
     <div class="legend-container">
@@ -314,8 +314,9 @@
             function update(data) {
                 // Calculate the maximum acres burned for the current month's data
                 const maxAcres = d3.max(data, d => d.GIS_ACRES);
+                //maxAcres = parseFloat(maxAcres).toFixed(2);
                 // Update the domain of the size scale
-                z.domain([0, maxAcres]);
+                z.domain([0, parseFloat(maxAcres).toFixed(2)]);
 
                 const circles = svg.selectAll(".dot")
                     .data(data, d => d.county);
@@ -328,7 +329,7 @@
                     .style("opacity", d => 0.7) // Adjust opacity
                     .on("mouseover", function (event, d) {
                         d3.select(this).style("opacity", 1);
-                        console.log(`Hovering over: ${d.county}, Temp: ${d.q_avgtempF}, Humidity: ${d.q_avghumid}, Acres: ${d.GIS_ACRES}`);
+                        console.log(`Hovering over: ${d.county}, Temp: ${parseFloat(d.q_avgtempF).toFixed(2)}, Humidity: ${d.q_avghumid}, Acres: ${d.GIS_ACRES}`);
                     })
                     .on("mouseout", function (event, d) {
                         d3.select(this).style("opacity", 0.7);
@@ -342,7 +343,7 @@
 
                     enterCircles.append("title")
                         .merge(circles.select("title"))
-                        .text(d => `${d.county}\nAvg Temp: ${d.q_avgtempF}\nAvg Humidity: ${d.q_avghumid}\nAcres Burned: ${d.GIS_ACRES}`);
+                        .text(d => `${d.county}\nAvg Temp: ${parseFloat(d.q_avgtempF).toFixed(2)} (F)\nAvg Humidity: ${parseFloat(d.q_avghumid).toFixed(2)} (%)\nAcres Burned: ${parseFloat(d.GIS_ACRES).toFixed(2)}`);
 
                 circles.exit().remove();
                 svg.selectAll(".dot").sort((a, b) => d3.descending(a.GIS_ACRES, b.GIS_ACRES));

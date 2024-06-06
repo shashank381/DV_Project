@@ -8,79 +8,97 @@
     <script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f7f6;
             margin: 0;
             padding: 0;
+            color: #333;
         }
+
         .navbar {
-                overflow: hidden;
-                background-color: #333;
-                position: fixed;
-                top: 0;
-                width: 99%;
-                z-index: 1000;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 0 14px;
+            overflow: hidden;
+            background-color: #333;
+            position: fixed;
+            top: 0;
+            width: 99%;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 14px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+
         .navbar .title {
-                color: white;
-                font-size: 20px;
-                font-weight: bold;
+            color: white;
+            font-size: 25px;
+            font-weight: bold;
         }
+
         .navbar .nav-links {
-                display: flex;
-                gap: 0px; /* Adjust spacing between buttons */
+            display: flex;
+            gap:-1px;
         }
+
         .navbar a {
-            /* float: right;
-            display: block; */
             color: #f2f2f2;
             text-align: center;
-            padding: 14px 18px;
+            padding: 14px 14px;
             text-decoration: none;
-            font-size: 17px;
+            font-size: 15px;
+            transition: background-color 0.3s;
         }
+
         .navbar a:hover {
             background-color: #ddd;
             color: black;
         }
+
         .navbar a.active {
             background-color: #4CAF50;
             color: white;
         }
+
         .container {
-            width: 100%;
-            margin: 50px auto;
+            width: 90%;
+            margin: 100px auto;
             padding: 20px;
             text-align: center;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
         }
-        .chart {
+
+        .container h1 {
+            margin-bottom: 30px;
+            font-size: 22px;
+            color: black;
+        }
+        /* .chart {
             margin: 0 auto;
-        }
+        } */
     </style>
 </head>
 <body>
     <div class="navbar">
         <div class="title">California Wildfire Prediction and Analysis</div>
         <div class="nav-links"><a href="/">Wildfire Prediction</a>
-            <a href="/viz1" >Wildfire Heatmap</a>
-            <a href="/viz2">Top 10 Counties over the years</a>
-            <a href="/viz3" class="active">Causes of Kern and LA Fires</a>
+            <a href="/viz1" >County Choropleth</a>
+            <a href="/viz2">Top 10 Counties over the Years</a>
+            <a href="/viz3" class="active">Sankey Diagram of Kern and LA Fires</a>
         </div>
     </div>
-<div class="container">
-    <h1>Sankey Diagram</h1>
-    <div id="chart" class="container"></div>
-</div>
+<!-- <div class="container"> -->
+    
+    <div id="container" class="container">
+        <h1>Causes of Kern and Los Angeles County Wildfires</h1>
+<!-- </div> -->
 <script>
     const margin = {top: 10, right: 10, bottom: 10, left: 10},
         width = 960 - margin.left - margin.right,
         height = 500 - margin.top - margin.bottom;
 
-    const svg = d3.select("#chart").append("svg")
+    const svg = d3.select("#container").append("svg")
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
         .append("g")
@@ -213,7 +231,7 @@
                     const incomingLinks = graph.links.filter(l => l.target === d);
                     const laCountySum = d3.sum(incomingLinks.filter(l => l.county === "Los Angeles County"), l => l.value);
                     const kernCountySum = d3.sum(incomingLinks.filter(l => l.county === "Kern County"), l => l.value);
-                    return `${d.name}\nTotal Acres Burned: ${d.value}\nLos Angeles County: ${laCountySum} acres\nKern County: ${kernCountySum} acres`;
+                    return `${d.name}\nKern County: ${kernCountySum} acres\nLos Angeles County: ${laCountySum} acres\nTotal Acres Burned: ${d.value}`;
                 }
             });
 
@@ -264,5 +282,6 @@
         });
     }).catch(error => console.error(error));
 </script>
+</div>
 </body>
 </html>

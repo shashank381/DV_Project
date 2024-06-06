@@ -25,7 +25,7 @@
         }
         .navbar .title {
                 color: white;
-                font-size: 20px;
+                font-size: 25px;
                 font-weight: bold;
         }
         .navbar .nav-links {
@@ -37,9 +37,9 @@
             display: block; */
             color: #f2f2f2;
             text-align: center;
-            padding: 14px 18px;
+            padding: 14px 14px;
             text-decoration: none;
-            font-size: 17px;
+            font-size: 15px;
         }
         .navbar a:hover {
             background-color: #ddd;
@@ -50,11 +50,14 @@
             color: white;
         }
         .container {
-            width: 90%;
+            width: 95%;
             margin: 50px auto 0;
             margin-bottom: 0px; /*Adjusted for navbar */
             padding-top: 0px;
             text-align: center;
+        }
+        .container h2{
+            font-size: 22px;
         }
         .map-container {
             width: 100%;
@@ -106,13 +109,13 @@
     <div class="navbar">
         <div class="title">California Wildfire Prediction and Analysis</div>
         <div class="nav-links"><a href="/" class="active">Wildfire Prediction</a>
-            <a href="/viz1">Wildfire Heatmap</a>
-            <a href="/viz2">Top 10 Counties over the years</a>
-            <a href="/viz3">Causes of Kern and LA Fires</a>
+            <a href="/viz1">County Choropleth</a>
+            <a href="/viz2">Top 10 Counties over the Years</a>
+            <a href="/viz3">Sankey Diagram of Kern and LA Fires</a>
         </div>
     </div>
     <div class="container">
-        <h1>Wildfire Prediction</h1>
+        <h2>Wildfire Prediction</h2>
         <div id="map" class="map-container"></div>
         <div class="form-container">
             <form id="predictionForm">
@@ -183,7 +186,7 @@
                 <input type="number" step="any" id="temp" name="temp" required>
                 <label for="humid">Average Humidity (%):</label>
                 <input type="number" step="any" id="humid" name="humid" required>
-                <label for="precip">Total Precipitation (in):</label>
+                <label for="precip">Average Precipitation (in):</label>
                 <input type="number" step="any" id="precip" name="precip" required>
                 <input type="submit" value="Predict">
             </form>
@@ -296,7 +299,7 @@
                     // Add a popup with the prediction result
                     currentPopup = new mapboxgl.Popup()
                         .setLngLat([predictionData.lon, predictionData.lat])
-                        .setHTML(`<h4>${predictionData.county}</h4><p>${acresBurned > 0 ? `${acresBurned} acres burned` : 'No Wildfire Predicted'}</p>`)
+                        .setHTML(`<h4>${predictionData.county}</h4><p>${acresBurned > 0 ? `${acresBurned} acres predicted to burn` : 'No Wildfire Predicted'}</p>`)
                         .addTo(map);
                 }
                 temp = countyName
@@ -313,7 +316,7 @@
                 .then(response => response.json())
                 .then(data => {
                     updateMap(data);
-                    document.getElementById('result').innerHTML = data.acres_burned > 0 ? `${data.acres_burned.toFixed(2)} acres burned` : 'No Wildfire Predicted';
+                    // document.getElementById('result').innerHTML = data.acres_burned > 0 ? `${data.acres_burned.toFixed(2)} acres burned` : 'No Wildfire Predicted';
                 })
                 .catch(error => {
                     console.error('Error:', error);
